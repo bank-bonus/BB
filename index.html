@@ -3,80 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Купоны и бонусы банков 2025</title>
+  <title>Бонусы за карты — до 5000₽ от банков | BankBonus</title>
+  <meta name="description" content="Оформи карту и получи до 5000₽ бонусом. Лучшие предложения банков России: Тинькофф, Альфа-Банк, Райффайзен и другие." />
+  <meta name="keywords" content="карта с бонусом, карта с кэшбэком, банк бонус, оформить карту онлайн, заработать на карте" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- AOS animations -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 text-gray-800 font-sans">
+
   <!-- Header -->
-  <header class="bg-white shadow-md sticky top-0 z-50">
+  <header class="bg-white/90 backdrop-blur-md shadow-md sticky top-0 z-50">
     <div class="max-w-6xl mx-auto flex justify-between items-center p-4">
       <h1 class="text-2xl font-bold text-blue-600">BankBonus</h1>
-      <nav class="space-x-4 text-gray-700 font-medium">
+      <nav class="space-x-6 text-gray-700 font-medium">
         <a href="#offers" class="hover:text-blue-600">Предложения</a>
-        <a href="#compare" class="hover:text-blue-600">Сравнение</a>
-        <a href="#blog" class="hover:text-blue-600">Блог</a>
+        <a href="#faq" class="hover:text-blue-600">FAQ</a>
+        <a href="#reviews" class="hover:text-blue-600">Отзывы</a>
       </nav>
     </div>
   </header>
 
   <!-- Hero -->
-  <section class="bg-blue-600 text-white text-center py-16 px-4">
-    <h2 class="text-4xl font-bold mb-4">Оформи карту — получи до 5000₽ бонусом!</h2>
-    <p class="text-lg mb-6">Собрали лучшие акции банков России. Получи деньги, кэшбэк и подарки за оформление карты.</p>
-    <a href="#offers" class="bg-white text-blue-600 font-bold px-6 py-3 rounded-2xl shadow-md hover:bg-gray-100">🔥 Получить бонус</a>
+  <section class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center py-20 px-6">
+    <h2 class="text-5xl font-extrabold mb-6" data-aos="fade-up">🔥 Банки платят за карты! До 5000₽ бонусом</h2>
+    <p class="text-lg mb-8 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="200">Собрали лучшие акции банков России. Получай деньги, кэшбэк и подарки за оформление карты.</p>
+    <a href="#offers" class="bg-white text-blue-600 font-bold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition transform inline-block" data-aos="zoom-in" data-aos-delay="400">Смотреть предложения</a>
+  </section>
+
+  <!-- Timer Section -->
+  <section class="bg-gradient-to-r from-red-600 to-orange-600 text-white text-center py-12 px-4">
+    <h3 class="text-3xl font-bold mb-4">⏳ Успей получить бонус!</h3>
+    <p class="mb-6">Акция заканчивается через:</p>
+    <div id="countdown" class="text-3xl font-bold"></div>
   </section>
 
   <!-- Offers -->
   <section id="offers" class="max-w-6xl mx-auto py-16 px-4">
-    <h3 class="text-3xl font-bold text-center mb-10">Популярные предложения недели</h3>
-    <div class="grid md:grid-cols-3 gap-6">
+    <h3 class="text-4xl font-bold text-center mb-12">Лучшие предложения</h3>
+    <div class="grid md:grid-cols-3 gap-8">
       <!-- Card 1 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between">
-        <div>
-          <h4 class="text-xl font-semibold mb-2">Тинькофф Black</h4>
-          <ul class="list-disc list-inside text-gray-600 mb-4">
-            <li>+3000₽ на счет при оформлении</li>
-            <li>Бесплатное обслуживание</li>
-            <li>Кэшбэк до 15% у партнёров</li>
-          </ul>
-        </div>
-        <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-center hover:bg-blue-700">Оформить карту</a>
-      </div>
-      <!-- Card 2 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between">
-        <div>
-          <h4 class="text-xl font-semibold mb-2">Альфа-Карта</h4>
-          <ul class="list-disc list-inside text-gray-600 mb-4">
-            <li>+2000₽ за первую покупку</li>
-            <li>1,5% кэшбэк на всё</li>
-            <li>Бесплатное снятие в банкоматах</li>
-          </ul>
-        </div>
-        <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-center hover:bg-blue-700">Получить бонус</a>
-      </div>
-      <!-- Card 3 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between">
-        <div>
-          <h4 class="text-xl font-semibold mb-2">Райффайзен Travel Card</h4>
-          <ul class="list-disc list-inside text-gray-600 mb-4">
-            <li>500 приветственных миль</li>
-            <li>Бесплатное страхование в путешествиях</li>
-            <li>Кэшбэк 5% на авиабилеты</li>
-          </ul>
-        </div>
-        <a href="#" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-center hover:bg-blue-700">Оформить карту</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="bg-blue-600 text-white py-8 mt-12">
-    <div class="max-w-6xl mx-auto text-center px-4">
-      <p class="text-lg mb-3">⚡ Подпишись на рассылку и первым узнавай о новых бонусах!</p>
-      <input type="email" placeholder="Ваш email" class="px-4 py-2 rounded-l-xl text-gray-800">
-      <button class="bg-white text-blue-600 px-4 py-2 rounded-r-xl font-bold">Подписаться</button>
-      <p class="text-sm text-blue-100 mt-6">© 2025 BankBonus. Мы не банк, а информационный сервис.</p>
-    </div>
-  </footer>
-</body>
-</html>
+      <div class="bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition transform hover:-translate-y-1" data-aos="fade-up">
+        <h4 class="text-2xl font-semibold mb-4 flex items-center"><i data-lucide="credit-card" class="w-6 h-6 mr-2 text-blue-600"></i> Тинькофф Black</h4>
+        <ul class="space-y-2 text-gray-600 mb-6">
+          <li>💰 +3000₽ на счет</li>
+          <li>💳 Бе
