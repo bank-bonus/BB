@@ -1,182 +1,99 @@
 <!DOCTYPE html>
-<html lang="ru" class="scroll-smooth">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Бонусы за карты — до 5000₽ от банков | BankBonus</title>
-  <meta name="description" content="Оформи карту и получи до 5000₽ бонусом. Лучшие предложения банков России: Тинькофф, Альфа-Банк, Райффайзен и другие." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Бонусные карты</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class'
-    }
-  </script>
-  <!-- AOS animations -->
-  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <!-- Lucide icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans dark:bg-gray-900 dark:text-gray-200 transition-colors duration-500">
-
-  <!-- Header -->
-  <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md sticky top-0 z-50 transition-colors duration-500">
-    <div class="max-w-6xl mx-auto flex justify-between items-center p-4">
-      <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400">BankBonus</h1>
-      <nav class="space-x-6 text-gray-700 dark:text-gray-200 font-medium">
-        <a href="#offers" class="hover:text-blue-600 dark:hover:text-blue-400">Предложения</a>
-        <a href="#faq" class="hover:text-blue-600 dark:hover:text-blue-400">FAQ</a>
-        <a href="#reviews" class="hover:text-blue-600 dark:hover:text-blue-400">Отзывы</a>
-      </nav>
-      <!-- Dark Mode Toggle -->
-      <button id="theme-toggle" class="ml-6 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:scale-110 transition">
-        <i data-lucide="moon" class="w-6 h-6 text-gray-800 dark:text-yellow-300"></i>
-      </button>
-    </div>
-  </header>
+<body class="bg-gray-50 text-gray-900">
 
   <!-- Hero -->
-  <section class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center py-20 px-6">
-    <h2 class="text-5xl font-extrabold mb-6" data-aos="fade-up">🔥 Банки платят за карты! До 5000₽ бонусом</h2>
-    <p class="text-lg mb-8 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="200">Собрали лучшие акции банков России. Получай деньги, кэшбэк и подарки за оформление карты.</p>
-    <a href="#offers" class="bg-white text-blue-600 font-bold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition transform inline-block" data-aos="zoom-in" data-aos-delay="400">Смотреть предложения</a>
-  </section>
+  <section class="relative bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center py-20 px-6 overflow-hidden">
+    <!-- Canvas background -->
+    <canvas id="particles" class="absolute inset-0 w-full h-full"></canvas>
 
-  <!-- Timer Section -->
-  <section class="bg-gradient-to-r from-red-600 to-orange-600 text-white text-center py-12 px-4">
-    <h3 class="text-3xl font-bold mb-4">⏳ Успей получить бонус!</h3>
-    <p class="mb-6">Акция заканчивается через:<32>
-    <div id="countdown" class="text-3xl font-bold"></div>
-  </section>
-
-  <!-- Offers -->
-  <section id="offers" class="max-w-6xl mx-auto py-16 px-4">
-    <h3 class="text-4xl font-bold text-center mb-12">Лучшие предложения</h3>
-    <div class="grid md:grid-cols-3 gap-8">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition transform hover:-translate-y-1" data-aos="fade-up">
-        <h4 class="text-2xl font-semibold mb-4 flex items-center"><i data-lucide="credit-card" class="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400"></i> Тинькофф Black</h4>
-        <ul class="space-y-2 text-gray-600 dark:text-gray-300 mb-6">
-          <li>💰 +3000₽ на счет</li>
-          <li>💳 Бесплатное обслуживание</li>
-          <li>🛍 Кэшбэк до 15%</li>
-        </ul>
-        <a href="ВСТАВЬ_ССЫЛКУ" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-bold block text-center hover:opacity-90">Оформить карту</a>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200">
-        <h4 class="text-2xl font-semibold mb-4 flex items-center"><i data-lucide="wallet" class="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400"></i> Альфа-Карта</h4>
-        <ul class="space-y-2 text-gray-600 dark:text-gray-300 mb-6">
-          <li>💸 +2000₽ за первую покупку</li>
-          <li>🎁 1,5% кэшбэк на всё</li>
-          <li>🏦 Бесплатное снятие наличных</li>
-        </ul>
-        <a href="ВСТАВЬ_ССЫЛКУ" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-bold block text-center hover:opacity-90">Получить бонус</a>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="400">
-        <h4 class="text-2xl font-semibold mb-4 flex items-center"><i data-lucide="plane" class="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400"></i> Райффайзен Travel</h4>
-        <ul class="space-y-2 text-gray-600 dark:text-gray-300 mb-6">
-          <li>✈️ 500 приветственных миль</li>
-          <li>🛡 Страховка для путешествий</li>
-          <li>💵 5% кэшбэк на авиабилеты</li>
-        </ul>
-        <a href="ВСТАВЬ_ССЫЛКУ" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-bold block text-center hover:opacity-90">Оформить карту</a>
-      </div>
+    <div class="relative z-10">
+      <h2 class="text-5xl font-extrabold mb-6">🔥 Банки платят за карты! До 5000₽ бонусом</h2>
+      <p class="text-lg mb-8 max-w-2xl mx-auto">
+        Собрали лучшие акции банков России. Получай деньги, кэшбэк и подарки за оформление карты.
+      </p>
+      <a href="#offers"
+         class="bg-white text-blue-600 font-bold px-8 py-4 rounded-full shadow-lg hover:scale-105 transition transform inline-block">
+        Смотреть предложения
+      </a>
     </div>
   </section>
 
-  <!-- FAQ -->
-  <section id="faq" class="bg-gray-100 dark:bg-gray-800 py-16 px-4 transition-colors duration-500">
-    <div class="max-w-4xl mx-auto">
-      <h3 class="text-4xl font-bold text-center mb-12">Частые вопросы</h3>
-      <div class="space-y-8" data-aos="fade-up">
-        <div>
-          <h4 class="text-lg font-semibold">📌 Реально ли банки платят бонусы?</h4>
-          <p class="text-gray-600 dark:text-gray-300">Да! Банки конкурируют за клиентов и готовы платить 2000–5000₽ за оформление карты.</p>
-        </div>
-        <div>
-          <h4 class="text-lg font-semibold">📌 Как быстро приходит бонус?</h4>
-          <p class="text-gray-600 dark:text-gray-300">Обычно 3–14 дней после выполнения условий (например, первая покупка).</p>
-        </div>
-        <div>
-          <h4 class="text-lg font-semibold">📌 Сколько карт можно оформить?</h4>
-          <p class="text-gray-600 dark:text-gray-300">Можно несколько, если они от разных банков. Главное — выполнять условия каждой акции.</p>
-        </div>
-      </div>
+  <!-- Пример блока с предложениями -->
+  <section id="offers" class="py-16 px-6 max-w-5xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div class="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
+      <h3 class="text-xl font-bold mb-2">Карта №1</h3>
+      <p class="mb-4">Бонус: 3000₽</p>
+      <a href="#" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">Оформить</a>
     </div>
-  </section>
-
-  <!-- Reviews -->
-  <section id="reviews" class="max-w-6xl mx-auto py-16 px-4">
-    <h3 class="text-4xl font-bold text-center mb-12">Отзывы пользователей</h3>
-    <div class="grid md:grid-cols-3 gap-8">
-      <div class="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6" data-aos="zoom-in">
-        <div class="flex items-center mb-4">
-          <img src="https://i.pravatar.cc/100?img=12" class="w-12 h-12 rounded-full mr-3">
-          <p class="font-semibold">Алексей, Москва</p>
-        </div>
-        <p class="text-gray-700 dark:text-gray-300">«Оформил карту Тинькофф Black, через неделю пришёл бонус 3000₽. Всё реально работает!»</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6" data-aos="zoom-in" data-aos-delay="200">
-        <div class="flex items-center mb-4">
-          <img src="https://i.pravatar.cc/100?img=24" class="w-12 h-12 rounded-full mr-3">
-          <p class="font-semibold">Ирина, Казань</p>
-        </div>
-        <p class="text-gray-700 dark:text-gray-300">«Альфа-Карта с кэшбэком оказалась удобной, и 2000₽ зачислили без проблем.»</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6" data-aos="zoom-in" data-aos-delay="400">
-        <div class="flex items-center mb-4">
-          <img src="https://i.pravatar.cc/100?img=36" class="w-12 h-12 rounded-full mr-3">
-          <p class="font-semibold">Дмитрий, СПб</p>
-        </div>
-        <p class="text-gray-700 dark:text-gray-300">«Брал Райффайзен Travel ради миль — бонус реально дали, плюс страховка в поездке.»</p>
-      </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
+      <h3 class="text-xl font-bold mb-2">Карта №2</h3>
+      <p class="mb-4">Бонус: 5000₽</p>
+      <a href="#" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">Оформить</a>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
+      <h3 class="text-xl font-bold mb-2">Карта №3</h3>
+      <p class="mb-4">Бонус: 2000₽</p>
+      <a href="#" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">Оформить</a>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-10 dark:from-gray-800 dark:to-gray-900 transition-colors duration-500">
-    <div class="max-w-6xl mx-auto text-center px-4">
-      <p class="text-lg mb-4">⚡ Следи за новыми бонусами каждую неделю!</p>
-      <div class="flex justify-center space-x-6 mb-4">
-        <a href="#" class="hover:text-gray-200"><i data-lucide="send" class="w-6 h-6"></i></a>
-        <a href="#" class="hover:text-gray-200"><i data-lucide="facebook" class="w-6 h-6"></i></a>
-        <a href="#" class="hover:text-gray-200"><i data-lucide="instagram" class="w-6 h-6"></i></a>
-      </div>
-      <p class="text-sm text-blue-100 dark:text-gray-400">© 2025 BankBonus. Мы не банк, а информационный сервис.</p>
-    </div>
+  <footer class="bg-gray-800 text-gray-300 text-center py-6 mt-12">
+    <p>© 2025 Бонусные карты. Все предложения принадлежат банкам.</p>
   </footer>
 
-  <!-- Scripts -->
+  <!-- 🎨 Скрипт для анимации частиц -->
   <script>
-    // Countdown
-    const deadline = new Date();
-    deadline.setDate(deadline.getDate() + 3);
-    function updateCountdown() {
-      const now = new Date().getTime();
-      const distance = deadline - now;
-      if (distance < 0) {
-        document.getElementById("countdown").innerHTML = "Акция завершена 🚫";
-        return;
-      }
-      const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((distance % (1000 * 60)) / 1000);
-      document.getElementById("countdown").innerHTML = d + "д " + h + "ч " + m + "м " + s + "с ";
+    const canvas = document.getElementById("particles");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = 400; // высота анимации (как у Hero-блока)
     }
-    setInterval(updateCountdown, 1000);
+    resizeCanvas();
 
-    // Dark mode toggle
-    const themeToggle = document.getElementById("theme-toggle");
-    themeToggle.addEventListener("click", () => {
-      document.documentElement.classList.toggle("dark");
-      lucide.createIcons();
-    });
+    const particles = [];
+    const count = 40;
 
-    // AOS init + Lucide
-    AOS.init();
-    lucide.createIcons();
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 3 + 1,
+        dx: (Math.random() - 0.5) * 0.7,
+        dy: (Math.random() - 0.5) * 0.7
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.fill();
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+    window.addEventListener("resize", resizeCanvas);
   </script>
 </body>
 </html>
