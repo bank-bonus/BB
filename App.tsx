@@ -14,7 +14,7 @@ import {
   FOOD_ENERGY,
   getPriorityLevel
 } from './constants';
-import { generatePassengerData } from './services/geminiService';
+import { generatePassengerData } from './geminiService';
 import { StatsPanel } from './components/StatsPanel';
 import { Button } from './components/Button';
 import { Minimap } from './components/Minimap';
