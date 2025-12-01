@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Симулятор Такси</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Yandex Games SDK -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX execution in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* Disable pull-to-refresh on mobile */
+      body {
+        overscroll-behavior-y: contain;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f3f3f3;
+      }
+      
+      /* Hide scrollbar */
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+
+      .bottom-sheet {
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      }
+      
+      .yandex-yellow {
+        background-color: #FCE000;
+      }
+
+      /* Custom animations */
+      @keyframes pop {
+        0% { transform: scale(0.95); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+      
+      .animate-pop {
+        animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      @keyframes breath {
+        0% { transform: scale(1); box-shadow: 0 10px 15px -3px rgba(252, 224, 0, 0.3); }
+        50% { transform: scale(1.02); box-shadow: 0 20px 25px -5px rgba(252, 224, 0, 0.6); }
+        100% { transform: scale(1); box-shadow: 0 10px 15px -3px rgba(252, 224, 0, 0.3); }
+      }
+
+      .animate-breath {
+        animation: breath 2s infinite ease-in-out;
+      }
+
+      @keyframes shrink {
+        from { width: 100%; }
+        to { width: 0%; }
+      }
+
+      .animate-shrink {
+        animation: shrink 10s linear forwards;
+      }
+
+      .pt-safe-top {
+        padding-top: env(safe-area-inset-top, 20px);
+      }
+      
+      .pb-safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-100 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react,typescript">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ICONS (Inline implementation to avoid dependencies) ---
+        const Icon = ({ path, size = 24, className = '', ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className} 
+                {...props}
+            >
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Star: (p) => <Icon path={<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />} {...p} />,
+            Zap: (p) => <Icon path={<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />} {...p} />,
+            Crown: (p) => <Icon path={<path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />} {...p} />,
+            MapPin: (p) => <Icon path={<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></>} {...p} />,
+            CarFront: (p) => <Icon path={<path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/><path d="M7 14h.01"/><path d="M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2"/><path d="M19 18v2"/>} {...p} />,
+            PlayCircle: (p) => <Icon path={<><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></>} {...p} />,
+            Clock: (p) => <Icon path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} {...p} />,
+            Navigation: (p) => <Icon path={<polygon points="3 11 22 2 13 21 11 13 3 11"/>} {...p} />,
+            ChevronRight: (p) => <Icon path={<path d="m9 18 6-6-6-6"/>} {...p} />,
+            RotateCcw: (p) => <Icon path={<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/><path d="M3 5v7h7"/>} {...p} />,
+            ArrowLeft: (p) => <Icon path={<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>} {...p} />,
+            Moon: (p) => <Icon path={<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>} {...p} />,
+            Sun: (p) => <Icon path={<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>} {...p} />,
+            LogOut: (p) => <Icon path={<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>} {...p} />,
+            Flame: (p) => <Icon path={<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.1.7-2.2 1.5-3.2"/>} {...p} />,
+            ShieldAlert: (p) => <Icon path={<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>} {...p} />,
+            Fuel: (p) => <Icon path={<line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>} {...p} />,
+            Gauge: (p) => <Icon path={<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>} {...p} />,
+            BedDouble: (p) => <Icon path={<path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M12 4v6"/><path d="M2 18h20"/>} {...p} />,
+            CheckCircle2: (p) => <Icon path={<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>} {...p} />,
+            Sunrise: (p) => <Icon path={<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="m17.66 12.34 1.41-1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m6.34 19.07-1.41-1.41"/><path d="m19.07 17.66-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>} {...p} />,
+            MoonStar: (p) => <Icon path={<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/><path d="M20 3v4"/><path d="M22 5h-4"/>} {...p} />,
+            CloudSun: (p) => <Icon path={<path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>} {...p} />
+        };
+
+        // --- CONSTANTS ---
+        
+        const INITIAL_STATE = {
+            money: 500,
+            rating: 5.0,
+            energy: 100,
+            day: 1,
+            currentCarId: 'car_1',
+            ownedCarIds: [],
+            isRenting: true,
+            totalRides: 0,
+        };
+
+        const PRIORITY_THRESHOLDS = {
+            BRONZE: { rides: 0, label: 'Бронза', multiplier: 1.0, color: 'bg-orange-700' },
+            SILVER: { rides: 10, label: 'Серебро', multiplier: 1.1, color: 'bg-slate-400' },
+            GOLD: { rides: 30, label: 'Золото', multiplier: 1.25, color: 'bg-yellow-500' },
+            PLATINUM: { rides: 60, label: 'Платина', multiplier: 1.5, color: 'bg-cyan-600' }
+        };
+
+        const getPriorityLevel = (rides) => {
+            if (rides >= PRIORITY_THRESHOLDS.PLATINUM.rides) return { level: 'PLATINUM', config: PRIORITY_THRESHOLDS.PLATINUM };
+            if (rides >= PRIORITY_THRESHOLDS.GOLD.rides) return { level: 'GOLD', config: PRIORITY_THRESHOLDS.GOLD };
+            if (rides >= PRIORITY_THRESHOLDS.SILVER.rides) return { level: 'SILVER', config: PRIORITY_THRESHOLDS.SILVER };
+            return { level: 'BRONZE', config: PRIORITY_THRESHOLDS.BRONZE };
+        };
+
+        const getNextPriorityTarget = (rides) => {
+            if (rides < PRIORITY_THRESHOLDS.SILVER.rides) return PRIORITY_THRESHOLDS.SILVER.rides;
+            if (rides < PRIORITY_THRESHOLDS.GOLD.rides) return PRIORITY_THRESHOLDS.GOLD.rides;
+            if (rides < PRIORITY_THRESHOLDS.PLATINUM.rides) return PRIORITY_THRESHOLDS.PLATINUM.rides;
+            return null;
+        };
+
+        const CARS = [
+            { id: 'car_1', name: 'Старая Лада', type: 'ECONOMY', price: 0, rentPrice: 50, fuelConsumption: 15, speed: 1, image: './assets/cars/lada.png', color: '#FDE047', textColor: '#000000' },
+            { id: 'car_2', name: 'Народный Солярис', type: 'ECONOMY', price: 5000, rentPrice: 150, fuelConsumption: 10, speed: 1.2, image: './assets/cars/solaris.png', color: '#FACC15', textColor: '#000000' },
+            { id: 'car_3', name: 'Комфорт Камри', type: 'COMFORT', price: 15000, rentPrice: 350, fuelConsumption: 8, speed: 1.5, image: './assets/cars/camry.png', color: '#ffffff', textColor: '#000000' },
+            { id: 'car_tesla', name: 'Электро Тесла', type: 'COMFORT', price: 25000, rentPrice: 450, fuelConsumption: 5, speed: 1.8, image: './assets/cars/tesla.png', color: '#ef4444', textColor: '#ffffff' },
+            { id: 'car_van', name: 'Минивэн V-Class', type: 'BUSINESS', price: 35000, rentPrice: 600, fuelConsumption: 14, speed: 1.4, image: './assets/cars/vclass.png', color: '#1e293b', textColor: '#ffffff' },
+            { id: 'car_4', name: 'Люкс Майбах', type: 'BUSINESS', price: 65000, rentPrice: 0, fuelConsumption: 12, speed: 2.0, image: './assets/cars/maybach.png', color: '#000000', textColor: '#FFD700' },
+            { id: 'car_rolls', name: 'Роллс Фантом', type: 'LUXURY', price: 150000, rentPrice: 0, fuelConsumption: 20, speed: 1.8, image: './assets/cars/rolls.png', color: '#1a1a1a', textColor: '#e5e7eb' }
+        ];
+
+        const SHIFT_CONFIG = {
+            'MORNING': { label: 'Утро (07:00 - 10:00)', multiplier: 1.8, commission: 0.30, traffic: 'Пробки', desc: 'Час пик! Высокий спрос, но большая комиссия.' },
+            'DAY': { label: 'День (10:00 - 16:00)', multiplier: 1.0, commission: 0.15, traffic: 'Свободно', desc: 'Спокойная работа, низкая комиссия.' },
+            'EVENING': { label: 'Вечер (16:00 - 20:00)', multiplier: 2.0, commission: 0.35, traffic: 'Пробки', desc: 'Максимальные цены, но и комиссия кусается.' }
+        };
+
+        // --- SERVICES ---
+
+        const FALLBACK_DATA = {
+            name: "Иван",
+            story: "Просто еду на работу, опаздываю.",
+            destination: "Бизнес-центр"
+        };
+        
+        // Enter your API Key here if you have one, otherwise it uses fallback
+        const API_KEY = ""; 
+
+        const generatePassengerData = async (shiftTime) => {
+            if (!API_KEY) return FALLBACK_DATA;
+
+            try {
+                const prompt = `Сгенерируй JSON профиль пассажира такси для смены "${shiftTime}" в России. {"name": "Имя", "story": "Короткая история (макс 10 слов)", "destination": "Место"}`;
+                
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: 'application/json' }
+                    })
+                });
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!text) return FALLBACK_DATA;
+                return JSON.parse(text);
+            } catch (error) {
+                console.error("Gemini failed:", error);
+                return FALLBACK_DATA;
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        const Button = ({ children, variant = 'primary', fullWidth = false, className = '', ...props }) => {
+            const baseStyles = "px-6 py-4 rounded-xl font-bold text-[15px] transition-all active:scale-[0.98] active:translate-y-1 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center relative overflow-hidden";
+            
+            const variants = {
+                primary: "bg-gradient-to-b from-[#FCE000] to-[#f5da00] text-black border-b-4 border-[#d4bc00] hover:brightness-105 active:border-b-0", 
+                secondary: "bg-gray-100 text-black border-b-4 border-gray-200 hover:bg-gray-200 active:border-b-0",
+                danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-100",
+                success: "bg-gradient-to-b from-green-500 to-green-600 text-white border-b-4 border-green-700 hover:brightness-105 active:border-b-0",
+                outline: "border-2 border-gray-200 bg-white text-black hover:bg-gray-50",
+                ad: "bg-gradient-to-b from-violet-500 to-violet-600 text-white border-b-4 border-violet-800 hover:brightness-110 active:border-b-0 shadow-lg shadow-violet-200"
+            };
+
+            return (
+                <button className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`} {...props}>
+                    {children}
+                </button>
+            );
+        };
+
+        const Minimap = ({ distance, isDriving = false, isNightMode = false, className = '' }) => {
+            const [progress, setProgress] = useState(0);
+            const seed = distance * 100;
+            
+            const route = useMemo(() => {
+                const start = { x: 50, y: 150 };
+                const mid = { x: 150 + (seed % 50), y: 50 + (seed % 50) };
+                const end = { x: 250 + (seed % 20), y: 150 + (seed % 60) };
+                const pathD = `M ${start.x} ${start.y} Q ${mid.x} ${mid.y} ${end.x} ${end.y}`;
+                return { start, end, pathD };
+            }, [seed]);
+
+            useEffect(() => {
+                if (isDriving) {
+                    setProgress(0);
+                    let startTimestamp;
+                    const duration = 2500;
+                    const step = (timestamp) => {
+                        if (!startTimestamp) startTimestamp = timestamp;
+                        const elapsed = timestamp - startTimestamp;
+                        const newProgress = Math.min(elapsed / duration, 1);
+                        setProgress(newProgress);
+                        if (newProgress < 1) window.requestAnimationFrame(step);
+                    };
+                    window.requestAnimationFrame(step);
+                } else {
+                    setProgress(0);
+                }
+            }, [isDriving]);
+
+            const carPos = useMemo(() => {
+                if (progress === 0) return route.start;
+                if (progress === 1) return route.end;
+                const t = progress;
+                const p0 = route.start;
+                const p1 = { x: 150 + (seed % 50), y: 50 + (seed % 50) };
+                const p2 = route.end;
+                const x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
+                const y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
+                return { x, y };
+            }, [progress, route, seed]);
+
+            return (
+                <div className={`w-full h-full relative overflow-hidden transition-colors duration-500 ${isNightMode ? 'bg-[#1a1b26]' : 'bg-[#f3f3f3]'} ${className}`}>
+                    <svg className="w-full h-full" viewBox="0 0 300 250" preserveAspectRatio="xMidYMid slice">
+                        <defs>
+                            <pattern id="cityGrid" width="60" height="60" patternUnits="userSpaceOnUse">
+                                <rect width="50" height="50" fill={isNightMode ? '#24283b' : '#e5e7eb'} rx="2" ry="2"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill={isNightMode ? '#1a1b26' : '#ffffff'} />
+                        <rect width="100%" height="100%" fill="url(#cityGrid)" opacity="0.6" transform="rotate(15)" />
+                        <path d={route.pathD} stroke={isNightMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.1)"} strokeWidth="10" fill="none" strokeLinecap="round" />
+                        <path d={route.pathD} stroke={isNightMode ? "#565f89" : "#212121"} strokeWidth="6" fill="none" strokeLinecap="round" strokeDasharray="10, 5" />
+                        <path d={route.pathD} stroke="#FCE000" strokeWidth="6" fill="none" strokeLinecap="round" strokeDasharray="1000" strokeDashoffset={1000 * (1 - progress)} className="transition-all duration-75 ease-linear" />
+                        <circle cx={route.start.x} cy={route.start.y} r="8" fill={isNightMode ? "#fff" : "#212121"} />
+                        <circle cx={route.start.x} cy={route.start.y} r="3" fill={isNightMode ? "#000" : "white"} />
+                        <g transform={`translate(${route.end.x - 12}, ${route.end.y - 24})`}>
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24c0-6.63-5.37-12-12-12zm0 16.2c-2.32 0-4.2-1.88-4.2-4.2s1.88-4.2 4.2-4.2 4.2 1.88 4.2 4.2-1.88 4.2-4.2 4.2z" fill={isNightMode ? "#FCE000" : "#000"} />
+                        </g>
+                        {(isDriving || progress === 0) && (
+                            <g transform={`translate(${carPos.x}, ${carPos.y})`}>
+                                <circle r="12" fill={isNightMode ? "rgba(252, 224, 0, 0.2)" : "rgba(252, 224, 0, 0.3)"} className="animate-ping" />
+                                <circle r="6" fill="#FCE000" stroke="#000" strokeWidth="2" />
+                            </g>
+                        )}
+                    </svg>
+                    <div className={`absolute top-4 right-4 backdrop-blur px-3 py-1.5 rounded-lg shadow-sm border flex items-center gap-2 ${isNightMode ? 'bg-black/60 border-white/10' : 'bg-white/90 border-gray-100'}`}>
+                        <span className={`text-xs font-semibold ${isNightMode ? 'text-gray-400' : 'text-gray-500'}`}>Маршрут</span>
+                        <span className={`text-sm font-bold ${isNightMode ? 'text-white' : 'text-black'}`}>{distance.toFixed(1)} км</span>
+                    </div>
+                </div>
+            );
+        };
+
+        const StatsPanel = ({ player, currentCar }) => {
+            const priority = getPriorityLevel(player.totalRides);
+            const PriorityConfig = priority.config;
+            const nextTarget = getNextPriorityTarget(player.totalRides);
+
+            return (
+                <div className="absolute top-0 left-0 right-0 z-50 pt-safe-top">
+                    <div className="bg-white/95 backdrop-blur-md mx-4 mt-4 p-3 rounded-2xl shadow-lg border border-gray-100">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg">
+                                <Icons.Star size={16} className="fill-yellow-400 text-yellow-400" />
+                                <span className="font-bold text-sm text-gray-800">{player.rating.toFixed(2)}</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="font-black text-xl leading-none">{Math.floor(player.money)} ₽</div>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg">
+                                <Icons.Zap size={16} className={player.energy < 20 ? "text-red-500 fill-red-500" : "text-gray-400 fill-gray-400"} />
+                                <span className={`font-bold text-sm ${player.energy < 20 ? "text-red-500" : "text-gray-800"}`}>{player.energy}</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold text-white uppercase tracking-wider shadow-sm w-full justify-between ${PriorityConfig.color}`}>
+                                <div className="flex items-center gap-1">
+                                    <Icons.Crown size={12} />
+                                    {PriorityConfig.label}
+                                </div>
+                                {nextTarget ? (
+                                    <span className="opacity-80 text-[10px] bg-black/20 px-1.5 py-0.5 rounded">
+                                        {player.totalRides}/{nextTarget}
+                                    </span>
+                                ) : (
+                                    <span className="opacity-80 text-[10px]">MAX</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-center mt-2">
+                        <div className="bg-black/80 backdrop-blur text-white text-[10px] px-3 py-1 rounded-full font-medium shadow-md">
+                            День {player.day} • {currentCar.name}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APP ---
+
+        function App() {
+            const [player, setPlayer] = useState(() => {
+                const saved = localStorage.getItem('taxi_save_yandex_v3');
+                return saved ? JSON.parse(saved) : INITIAL_STATE;
+            });
+            const [activeShift, setActiveShift] = useState(null);
+            const [currentOffer, setCurrentOffer] = useState(null);
+            const [isDriving, setIsDriving] = useState(false);
+            const [logs, setLogs] = useState([]);
+            const [isNightMode, setIsNightMode] = useState(false);
+            const [bonusOfferAvailable, setBonusOfferAvailable] = useState(false);
+            const [activeSheet, setActiveSheet] = useState('MENU');
+            const [activeShiftStats, setActiveShiftStats] = useState({ money: 0, rides: 0 });
+            const [lastRideStats, setLastRideStats] = useState({ money: 0, rating: 0 });
+            const [ysdk, setYsdk] = useState(null);
+            const activeSheetRef = useRef(activeSheet);
+
+            useEffect(() => { localStorage.setItem('taxi_save_yandex_v3', JSON.stringify(player)); }, [player]);
+            useEffect(() => { activeSheetRef.current = activeSheet; }, [activeSheet]);
+            useEffect(() => {
+                if (window.YaGames) {
+                    window.YaGames.init().then(sdk => {
+                        console.log('Yandex SDK initialized');
+                        setYsdk(sdk);
+                        window.ysdk = sdk;
+                    });
+                }
+            }, []);
+            useEffect(() => {
+                if (logs.length > 0) {
+                    const timer = setTimeout(() => setLogs(prev => prev.slice(1)), 2500);
+                    return () => clearTimeout(timer);
+                }
+            }, [logs]);
+
+            const addLog = (message, type = 'info') => {
+                const id = Date.now().toString();
+                setLogs(prev => [...prev.slice(-2), { id, message, type }]);
+            };
+
+            const getCar = (id) => CARS.find(c => c.id === id) || CARS[0];
+            const currentCar = getCar(player.currentCarId);
+
+            const handleStartDay = () => {
+                if (player.energy <= 10) return addLog("Слишком устал! Поешь или закончи смену.", "warning");
+                setActiveSheet('SHIFT_SELECT');
+            };
+
+            const startShift = (type) => {
+                setActiveShift(type);
+                setActiveShiftStats({ money: 0, rides: 0 });
+                setActiveSheet('SEARCHING');
+                generateOffer(type);
+            };
+
+            const generateOffer = async (shiftType, isBonus = false) => {
+                if (player.energy <= 5 && !isBonus) return endShift("Сил больше нет! Смена окончена.");
+                if (!isBonus) await new Promise(r => setTimeout(r, 2000));
+                if (!isBonus && activeSheetRef.current !== 'SEARCHING') return;
+
+                const config = SHIFT_CONFIG[shiftType];
+                const baseDistance = 2 + Math.random() * 15;
+                const distanceKm = parseFloat(baseDistance.toFixed(1));
+                
+                const priority = getPriorityLevel(player.totalRides);
+                const priorityMult = priority.config.multiplier;
+                const ratingMult = Math.max(0.5, 1 + (player.rating - 4.7) * 0.5);
+                let basePrice = (50 + (distanceKm * 25)) * config.multiplier;
+                if (isBonus) basePrice *= 1.5;
+
+                const finalPrice = Math.floor(basePrice * priorityMult * ratingMult);
+                let flavor = { name: 'Пассажир', story: 'Ждет такси', destination: 'Центр' };
+                try { flavor = await generatePassengerData(config.label); } catch (e) { console.warn("AI skipped"); }
+
+                setCurrentOffer({
+                    id: Date.now().toString(),
+                    distanceKm,
+                    price: finalPrice,
+                    basePrice: Math.floor(basePrice),
+                    ratingReward: isBonus ? 0.1 : 0.05,
+                    commission: config.commission,
+                    passengerName: flavor.name,
+                    passengerStory: isBonus ? "🔥 Срочный заказ! Доплачу." : flavor.story,
+                    destination: flavor.destination,
+                    isHighDemand: isBonus || shiftType === 'MORNING' || shiftType === 'EVENING'
+                });
+                setActiveSheet('OFFER');
+            };
+
+            const acceptRide = () => {
+                if (!currentOffer || !activeShift) return;
+                setIsDriving(true);
+                setActiveSheet('DRIVING');
+                setTimeout(completeRide, 2500);
+            };
+
+            const completeRide = () => {
+                if (!currentOffer || !activeShift) return;
+                const car = getCar(player.currentCarId);
+                const fuelCost = currentOffer.distanceKm * (car.fuelConsumption / 10); 
+                const grossEarnings = currentOffer.price;
+                const platformFee = Math.floor(grossEarnings * currentOffer.commission);
+                const netEarnings = grossEarnings - platformFee - Math.floor(fuelCost);
+                const ratingChange = currentOffer.ratingReward;
+
+                setPlayer(prev => ({
+                    ...prev,
+                    money: prev.money + netEarnings,
+                    rating: Math.min(5.0, prev.rating + ratingChange),
+                    energy: Math.max(0, prev.energy - Math.floor(fuelCost * 2)),
+                    totalRides: (prev.totalRides || 0) + 1
+                }));
+                setActiveShiftStats(prev => ({ money: prev.money + netEarnings, rides: prev.rides + 1 }));
+                setLastRideStats({ money: netEarnings, rating: ratingChange });
+                setIsDriving(false);
+                setCurrentOffer(null);
+                setActiveSheet('RIDE_COMPLETE');
+            };
+
+            const handleRideCompleteNext = () => {
+                if (bonusOfferAvailable) {
+                    setBonusOfferAvailable(false);
+                    setActiveSheet('RESULT');
+                } else {
+                    setActiveSheet('SEARCHING');
+                    setTimeout(() => { if (activeShift) generateOffer(activeShift); }, 1000);
+                }
+            };
+
+            const declineRide = () => {
+                if (bonusOfferAvailable) {
+                    setBonusOfferAvailable(false);
+                    return setActiveSheet('RESULT');
+                }
+                const penalty = 0.2; 
+                setPlayer(prev => ({ ...prev, rating: Math.max(1.0, prev.rating - penalty) }));
+                addLog(`Рейтинг снижен (-${penalty})`, 'error');
+                setCurrentOffer(null);
+                setActiveSheet('SEARCHING');
+                setTimeout(() => { if (activeShift) generateOffer(activeShift); }, 1000);
+            };
+
+            const endShift = (reason) => {
+                const hasEnergy = player.energy > 15;
+                if (hasEnergy && Math.random() > 0.6) setBonusOfferAvailable(true);
+                else setBonusOfferAvailable(false);
+                setCurrentOffer(null);
+                setActiveSheet('RESULT');
+                addLog(reason, 'info');
+            };
+
+            const triggerBonusOffer = () => {
+                if (activeShift) generateOffer(activeShift, true);
+            };
+
+            const sleep = () => {
+                const car = getCar(player.currentCarId);
+                let rentCost = player.isRenting ? car.rentPrice : 0;
+                setPlayer(prev => ({ ...prev, money: prev.money - rentCost, energy: 100, day: prev.day + 1 }));
+                setActiveShift(null);
+                setActiveSheet('MENU');
+                setBonusOfferAvailable(false);
+                if (player.money - rentCost < 0) addLog(`Долг за аренду! (-${rentCost}₽)`, 'error');
+                else addLog(`Аренда списана: -${rentCost}₽`, 'info');
+            };
+
+            const buyCar = (car) => {
+                if (player.money >= car.price) {
+                    setPlayer(prev => ({ ...prev, money: prev.money - car.price, ownedCarIds: [...prev.ownedCarIds, car.id], currentCarId: car.id, isRenting: false }));
+                }
+            };
+
+            const rentCar = (car) => {
+                setPlayer(prev => ({ ...prev, currentCarId: car.id, isRenting: true }));
+            };
+
+            const handleWatchAd = () => {
+                const reward = () => { setPlayer(p => ({...p, energy: Math.min(100, p.energy + 40)})); addLog("+40 Энергии", "success"); };
+                if (ysdk) {
+                    ysdk.adv.showRewardedVideo({ callbacks: { onOpen: () => {}, onRewarded: reward, onClose: () => {}, onError: reward } });
+                } else {
+                    reward();
+                }
+            };
+
+            const SafeCarImage = ({ car, className }) => (
+                <img src={car.image} className={className} alt={car.name} onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+            );
+
+            const renderMenuSheet = () => (
+                <div className={`absolute bottom-0 left-0 right-0 rounded-t-3xl shadow-[0_-5px_30px_rgba(0,0,0,0.15)] z-20 pb-safe-bottom animate-in slide-in-from-bottom duration-300 ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white text-black'}`}>
+                    <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-6"></div>
+                    <div className="absolute top-[-50px] right-4 flex gap-2">
+                        <button onClick={() => setIsNightMode(!isNightMode)} className={`p-2 rounded-full shadow-lg border transition-colors ${isNightMode ? 'bg-slate-800 border-slate-700 text-yellow-300' : 'bg-white border-gray-100 text-indigo-600'}`}>
+                            {isNightMode ? <Icons.Sun size={20} /> : <Icons.Moon size={20} />}
+                        </button>
+                    </div>
+                    <div className="px-5 pb-8 space-y-4">
+                        <div onClick={() => setActiveSheet('GARAGE')} className={`flex items-center gap-4 p-4 rounded-2xl border active:opacity-90 transition-colors ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
+                            <div className="w-16 h-10 rounded-md overflow-hidden relative bg-gray-200">
+                                <SafeCarImage car={currentCar} className="w-full h-full object-cover" />
+                                <div className={`hidden absolute inset-0 flex items-center justify-center p-2 text-center text-xs font-bold uppercase tracking-widest opacity-80`} style={{ backgroundColor: currentCar.color, color: currentCar.textColor }}>{currentCar.name}</div>
+                            </div>
+                            <div className="flex-1">
+                                <div className="font-bold text-lg">{currentCar.name}</div>
+                                <div className={`text-xs ${isNightMode ? 'text-gray-400' : 'text-gray-500'}`}>{player.isRenting ? `Аренда ${currentCar.rentPrice}₽/день` : 'Ваш автомобиль'}</div>
+                            </div>
+                            <Icons.ChevronRight className="text-gray-400" />
+                        </div>
+                        <Button variant="primary" fullWidth className="py-5 text-lg shadow-xl shadow-yellow-400/40 animate-breath" onClick={handleStartDay}>
+                            <div className="flex flex-col items-center leading-none">
+                                <span className="font-black text-2xl uppercase tracking-wide">На линию</span>
+                                <span className="text-[10px] opacity-70 font-medium mt-1">Заработать денег</span>
+                            </div>
+                        </Button>
+                        <Button variant="ad" onClick={handleWatchAd} className="py-4 flex items-center justify-center gap-3 w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 border-b-4 border-violet-800">
+                            <div className="bg-white/20 p-2 rounded-full"><Icons.PlayCircle size={20} className="fill-white" /></div>
+                            <div className="flex flex-col items-start leading-none">
+                                <span className="text-base font-black text-white">+40 ЭНЕРГИИ</span>
+                                <span className="text-[10px] opacity-90 text-white/80 font-medium tracking-wide">БЕСПЛАТНО ЗА РЕКЛАМУ</span>
+                            </div>
+                        </Button>
+                    </div>
+                </div>
+            );
+
+            const renderShiftSelectSheet = () => {
+                const shiftStyles = {
+                    'MORNING': { gradient: "from-orange-400 to-rose-500", icon: <Icons.Sunrise size={32} className="text-white drop-shadow-md"/>, borderColor: "border-orange-200", ringColor: "group-hover:ring-orange-300" },
+                    'DAY': { gradient: "from-sky-400 to-blue-500", icon: <Icons.CloudSun size={32} className="text-white drop-shadow-md"/>, borderColor: "border-sky-200", ringColor: "group-hover:ring-sky-300" },
+                    'EVENING': { gradient: "from-indigo-500 to-purple-600", icon: <Icons.MoonStar size={32} className="text-white drop-shadow-md"/>, borderColor: "border-purple-200", ringColor: "group-hover:ring-purple-300" }
+                };
+                return (
+                    <div className={`absolute bottom-0 left-0 right-0 rounded-t-3xl shadow-2xl z-30 pb-safe-bottom animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white'}`}>
+                        <div className={`sticky top-0 pt-3 pb-2 px-5 border-b z-10 flex justify-between items-center ${isNightMode ? 'bg-[#1e2030] border-slate-700' : 'bg-white border-gray-100'}`}>
+                            <h2 className="font-bold text-xl">Выбор тарифа</h2>
+                            <button onClick={() => setActiveSheet('MENU')} className={`p-2 rounded-full transition-colors ${isNightMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-gray-100 hover:bg-gray-200'}`}><Icons.ArrowLeft size={20}/></button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            {Object.keys(SHIFT_CONFIG).map((type) => {
+                                const config = SHIFT_CONFIG[type];
+                                const styles = shiftStyles[type];
+                                return (
+                                    <div key={type} onClick={() => startShift(type)} className={`group relative overflow-hidden rounded-2xl p-0.5 transition-all cursor-pointer active:scale-[0.98] hover:ring-4 ${styles.ringColor}`}>
+                                        <div className={`absolute inset-0 bg-gradient-to-r ${styles.gradient} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
+                                        <div className={`relative h-full rounded-[14px] p-5 flex flex-col justify-between overflow-hidden ${isNightMode ? 'bg-slate-900/90' : 'bg-white/95'}`}>
+                                            <div className="flex justify-between items-start mb-3 relative z-10">
+                                                <div className={`p-3 rounded-xl bg-gradient-to-br ${styles.gradient} shadow-md`}>{styles.icon}</div>
+                                                <div className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-md">x{config.multiplier}</div>
+                                            </div>
+                                            <div className="relative z-10">
+                                                <h3 className={`font-black text-2xl mb-1 ${isNightMode ? 'text-white' : 'text-slate-800'}`}>{config.label.split('(')[0]}</h3>
+                                                <div className={`text-sm font-medium opacity-60 mb-3 ${isNightMode ? 'text-gray-300' : 'text-slate-500'}`}>{config.label.split('(')[1]?.replace(')', '')}</div>
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border ${isNightMode ? 'border-gray-600 text-gray-400' : 'border-gray-200 text-gray-500'}`}>{config.traffic}</span>
+                                                    <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border ${isNightMode ? 'border-gray-600 text-gray-400' : 'border-gray-200 text-gray-500'}`}>Комиссия {Math.round(config.commission * 100)}%</span>
+                                                </div>
+                                                <p className={`text-sm leading-relaxed ${isNightMode ? 'text-gray-400' : 'text-slate-600'}`}>{config.desc}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderSearchingOverlay = () => (
+                <div className="absolute bottom-10 left-4 right-4 z-20 animate-in fade-in zoom-in duration-300">
+                    <div className="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl flex items-center justify-between border border-slate-700">
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-75"></div>
+                                <div className="relative bg-gradient-to-br from-yellow-400 to-yellow-600 w-10 h-10 rounded-full flex items-center justify-center text-black shadow-lg"><Icons.RotateCcw className="animate-spin" size={20} /></div>
+                            </div>
+                            <div>
+                                <div className="font-bold">Поиск заказа...</div>
+                                <div className="text-xs text-slate-400">Находимся в зоне спроса</div>
+                            </div>
+                        </div>
+                        <Button variant="secondary" className="bg-slate-800 text-white border-none py-2 px-4 text-xs h-auto hover:bg-slate-700" onClick={() => endShift("Смена прервана")}>Стоп</Button>
+                    </div>
+                </div>
+            );
+
+            const renderOfferSheet = () => {
+                if (!currentOffer) return null;
+                const priority = getPriorityLevel(player.totalRides);
+                const isHighDemand = currentOffer.isHighDemand;
+                return (
+                    <div className={`absolute bottom-0 left-0 right-0 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] z-40 pb-safe-bottom animate-in slide-in-from-bottom duration-300 overflow-hidden ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white'}`}>
+                        <div className={`h-1.5 w-full ${isNightMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
+                            <div key={currentOffer.id} className="h-full bg-yellow-500 animate-shrink origin-left"></div>
+                        </div>
+                        {isHighDemand && (
+                            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-center py-1 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-1">
+                                <Icons.Flame size={12} className="fill-white" />{bonusOfferAvailable ? 'ГОРЯЩИЙ ЗАКАЗ' : 'ВЫСОКИЙ СПРОС'}
+                            </div>
+                        )}
+                        <div className={`flex items-center justify-between px-6 py-5 border-b ${isNightMode ? 'border-slate-700' : 'border-gray-100 bg-white'} ${isHighDemand && !isNightMode ? 'bg-purple-50' : ''}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`p-3 rounded-xl ${isHighDemand ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-700'}`}><Icons.Navigation size={24} /></div>
+                                <div>
+                                    <div className={`text-xs font-medium uppercase ${isNightMode ? 'text-gray-400' : 'text-gray-400'}`}>Заказ</div>
+                                    <div className={`font-black text-3xl ${isHighDemand ? 'text-purple-500' : (isNightMode ? 'text-white' : 'text-black')}`}>{currentOffer.price} ₽</div>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className={`font-bold text-lg ${isNightMode ? 'text-gray-200' : 'text-gray-800'}`}>{currentOffer.distanceKm} км</div>
+                                <div className="text-xs text-gray-400">~{Math.ceil(currentOffer.distanceKm * 2)} мин</div>
+                            </div>
+                        </div>
+                        <div className="px-6 pt-3 flex flex-wrap gap-2">
+                            {player.rating < 4.7 && <div className="text-[10px] bg-red-900/30 text-red-500 px-2 py-1 rounded-md border border-red-500/20 flex items-center gap-1"><Icons.ShieldAlert size={10}/> Рейтинг снизил цену</div>}
+                            {priority.level !== 'BRONZE' && <div className="text-[10px] bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-md border border-yellow-500/20 flex items-center gap-1"><Icons.Zap size={10}/> Бонус статуса "{priority.config.label}"</div>}
+                        </div>
+                        <div className="px-6 py-4">
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-inner ${isNightMode ? 'bg-slate-700' : 'bg-gray-100'}`}>👤</div>
+                                <div>
+                                    <div className="font-bold text-lg">{currentOffer.passengerName}</div>
+                                    <div className="text-sm text-gray-500 italic leading-snug">"{currentOffer.passengerStory}"</div>
+                                </div>
+                            </div>
+                            <div className={`p-4 rounded-xl flex items-center gap-3 text-sm border mb-6 shadow-sm ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
+                                <Icons.MapPin size={18} className={isNightMode ? 'text-white' : 'text-black fill-black/10'} />
+                                <span className={`font-medium ${isNightMode ? 'text-gray-200' : 'text-gray-800'}`}>{currentOffer.destination}</span>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button variant="secondary" fullWidth className={`py-4 flex flex-col items-center justify-center gap-1 h-16 ${isNightMode ? 'bg-slate-800 text-white border-slate-700' : ''}`} onClick={declineRide}><span>Отмена</span></Button>
+                                <Button variant="primary" fullWidth className={`py-4 shadow-lg flex flex-col items-center justify-center gap-1 h-16 animate-pop ${isHighDemand ? 'shadow-purple-400/40 from-purple-500 to-purple-600 border-purple-700 text-white' : 'shadow-yellow-400/40'}`} onClick={acceptRide}>
+                                    <span className="text-lg">Поехали</span>
+                                    <span className={`text-[10px] ${isHighDemand ? 'opacity-80' : 'opacity-60 text-black'}`}>+{currentOffer.ratingReward} Рейтинг</span>
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderDrivingOverlay = () => (
+                <div className={`absolute bottom-0 left-0 right-0 p-6 rounded-t-3xl shadow-2xl z-30 pb-safe-bottom ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <div className="text-xs text-gray-400 uppercase font-bold mb-1">В пути</div>
+                            <div className={`font-black text-2xl ${isNightMode ? 'text-white' : 'text-slate-800'}`}>{currentOffer?.destination}</div>
+                        </div>
+                        <div className="bg-yellow-400 text-black font-bold px-4 py-2 rounded-xl text-lg shadow-sm border-b-2 border-yellow-500">{currentOffer?.price} ₽</div>
+                    </div>
+                    <div className={`w-full h-3 rounded-full overflow-hidden shadow-inner ${isNightMode ? 'bg-slate-700' : 'bg-gray-100'}`}>
+                        <div className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 w-full animate-[width_2.5s_ease-in-out] origin-left scale-x-0" style={{ transform: 'scaleX(1)', transition: 'transform 2.5s linear' }}></div>
+                    </div>
+                    <div className="text-center mt-3 text-xs text-gray-400 font-medium">Прибытие через несколько секунд...</div>
+                </div>
+            );
+
+            const renderRideCompleteOverlay = () => (
+                <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center p-8 animate-in zoom-in duration-300 ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white'}`}>
+                    <div className="bg-green-100 text-green-600 p-6 rounded-full mb-6 animate-pop"><Icons.CheckCircle2 size={64} /></div>
+                    <div className="text-center mb-8">
+                        <h2 className={`text-xl font-medium mb-1 ${isNightMode ? 'text-gray-300' : 'text-gray-500'}`}>Заказ завершён</h2>
+                        <div className={`text-5xl font-black mb-4 ${isNightMode ? 'text-white' : 'text-slate-900'}`}>+{lastRideStats.money} ₽</div>
+                        {lastRideStats.rating > 0 && <div className="inline-flex items-center gap-1 bg-yellow-400/10 text-yellow-600 px-3 py-1 rounded-full font-bold text-sm"><Icons.Zap size={14} className="fill-yellow-600"/>+{lastRideStats.rating.toFixed(2)} Рейтинг</div>}
+                    </div>
+                    <Button variant="primary" onClick={handleRideCompleteNext} className="w-full max-w-xs h-14 text-lg animate-breath shadow-lg shadow-yellow-400/20">Далее</Button>
+                </div>
+            );
+
+            const renderResultSheet = () => (
+                <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center p-8 animate-in zoom-in duration-300 ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white'}`}>
+                    <h2 className={`text-3xl font-black mb-2 ${isNightMode ? 'text-white' : 'text-slate-900'}`}>Смена завершена</h2>
+                    <div className={`w-full rounded-2xl p-6 mb-6 border shadow-xl ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100'}`}>
+                        <div className="flex justify-between items-center mb-4"><span className="text-gray-500 font-medium">Выполнено заказов</span><span className="font-bold text-xl">{activeShiftStats.rides}</span></div>
+                        <div className={`h-px w-full mb-4 ${isNightMode ? 'bg-slate-700' : 'bg-gray-100'}`}></div>
+                        <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Итоговый заработок</span><span className="font-black text-3xl text-green-500">+{activeShiftStats.money} ₽</span></div>
+                    </div>
+                    {bonusOfferAvailable && (
+                        <div className="w-full bg-gradient-to-br from-purple-900 to-slate-900 rounded-2xl p-4 mb-6 shadow-lg border border-purple-500/50 relative overflow-hidden flex items-center gap-4">
+                            <div className="bg-purple-800/50 p-3 rounded-full shrink-0 animate-pulse"><Icons.Flame className="text-purple-300" size={24} /></div>
+                            <div className="flex-1"><div className="font-bold text-white leading-tight">Горящий заказ!</div><div className="text-xs text-purple-200">Есть срочный клиент поблизости.</div></div>
+                            <button onClick={triggerBonusOffer} className="bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-lg border-b-2 border-purple-700 active:border-b-0 active:translate-y-0.5 transition-all">Взять</button>
+                            <button onClick={() => setBonusOfferAvailable(false)} className="absolute top-2 right-2 text-purple-400 hover:text-white p-1">✖</button>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3 w-full mt-auto">
+                        <Button variant="secondary" onClick={() => setActiveSheet('MENU')} className={`h-16 flex flex-col items-center justify-center ${isNightMode ? 'bg-slate-800 text-white border-slate-700' : ''}`}><Icons.LogOut size={20} className="mb-1 opacity-50"/><span className="text-xs">В меню</span></Button>
+                        <Button variant="primary" onClick={sleep} className="h-16 flex flex-col items-center justify-center shadow-lg shadow-yellow-400/20"><Icons.BedDouble size={20} className="mb-1"/><span className="text-xs">Спать (След. день)</span></Button>
+                    </div>
+                </div>
+            );
+
+            const renderGarageSheet = () => (
+                <div className={`absolute inset-0 z-50 flex flex-col animate-in slide-in-from-right duration-300 ${isNightMode ? 'bg-[#1e2030] text-white' : 'bg-white text-black'}`}>
+                    <div className={`px-6 pt-12 pb-4 border-b flex items-center gap-4 sticky top-0 z-10 ${isNightMode ? 'bg-[#1e2030] border-slate-700' : 'bg-white border-gray-100'}`}>
+                        <button onClick={() => setActiveSheet('MENU')} className={`p-2 -ml-2 rounded-full ${isNightMode ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}><Icons.ArrowLeft /></button>
+                        <h2 className="text-xl font-bold">Гараж</h2>
+                        <div className={`ml-auto px-3 py-1 rounded-full text-sm font-bold ${isNightMode ? 'bg-slate-800 text-yellow-400' : 'bg-gray-100'}`}>{Math.floor(player.money)} ₽</div>
+                    </div>
+                    <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isNightMode ? 'bg-[#1a1b26]' : 'bg-gray-50'}`}>
+                        {CARS.map(car => {
+                            const isOwned = player.ownedCarIds.includes(car.id) || car.id === 'car_1';
+                            const isCurrent = player.currentCarId === car.id;
+                            const getTypeName = (type) => ({'ECONOMY':'Эконом','COMFORT':'Комфорт','BUSINESS':'Бизнес','LUXURY':'Элитный'}[type] || type);
+                            return (
+                                <div key={car.id} className={`p-4 rounded-2xl shadow-sm border-2 transition-all relative overflow-hidden`} style={{ backgroundColor: isNightMode ? '#24283b' : 'white', borderColor: isCurrent ? '#FACC15' : (isNightMode ? '#334155' : 'transparent') }}>
+                                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] opacity-20 pointer-events-none" style={{ backgroundColor: car.color }}></div>
+                                    <div className="aspect-video w-full rounded-xl mb-4 overflow-hidden relative group shadow-inner bg-gray-200">
+                                        <SafeCarImage car={car} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                        <div className={`hidden absolute inset-0 flex items-center justify-center p-2 text-center text-xs font-bold uppercase tracking-widest opacity-80`} style={{ backgroundColor: car.color, color: car.textColor }}>{car.name}</div>
+                                        {isCurrent && <div className="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-1 rounded shadow-sm">ВЫБРАНА</div>}
+                                        <div className="absolute bottom-2 left-2 backdrop-blur text-[10px] px-2 py-1 rounded font-bold shadow-sm" style={{ backgroundColor: car.color, color: car.textColor }}>{getTypeName(car.type)}</div>
+                                    </div>
+                                    <div className="mb-4 relative">
+                                        <div className="font-bold text-lg mb-2">{car.name}</div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-xs"><Icons.Fuel size={12} className="text-gray-400"/><div className="w-16 text-gray-500">Расход</div><div className={`flex-1 h-1.5 rounded-full overflow-hidden ${isNightMode ? 'bg-slate-700' : 'bg-gray-100'}`}><div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.max(10, 100 - (car.fuelConsumption * 4))}%` }}></div></div></div>
+                                            <div className="flex items-center gap-2 text-xs"><Icons.Gauge size={12} className="text-gray-400"/><div className="w-16 text-gray-500">Скорость</div><div className={`flex-1 h-1.5 rounded-full overflow-hidden ${isNightMode ? 'bg-slate-700' : 'bg-gray-100'}`}><div className="h-full bg-blue-500 rounded-full" style={{ width: `${(car.speed / 2.5) * 100}%` }}></div></div></div>
+                                        </div>
+                                    </div>
+                                    {isOwned ? (
+                                        <Button variant={isCurrent ? 'secondary' : 'primary'} fullWidth disabled={isCurrent} onClick={() => setPlayer(p => ({...p, currentCarId: car.id, isRenting: false}))} className={`py-3 text-sm ${isNightMode && isCurrent ? 'bg-slate-700 text-gray-400 border-slate-600' : ''}`}>{isCurrent ? 'Используется' : 'Выбрать'}</Button>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button variant="outline" className={`text-xs py-3 font-bold ${isNightMode ? 'bg-slate-800 text-white border-slate-600 hover:bg-slate-700' : ''}`} disabled={player.money < car.price} onClick={() => buyCar(car)}>Купить {car.price}₽</Button>
+                                            {car.rentPrice > 0 && <Button variant="primary" className="text-xs py-3" onClick={() => rentCar(car)}>Аренда {car.rentPrice}₽</Button>}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="flex justify-center items-center min-h-screen bg-gray-900 font-sans">
+                    <div className="w-full max-w-md h-[100dvh] flex flex-col overflow-hidden relative shadow-2xl bg-white">
+                        <div className="absolute inset-0 z-0">
+                            <Minimap distance={currentOffer?.distanceKm || 0} isDriving={isDriving} isNightMode={isNightMode} className="h-full w-full" />
+                            <div className={`absolute inset-0 pointer-events-none transition-all duration-700 ${isNightMode ? 'bg-indigo-950/60 mix-blend-multiply' : 'bg-transparent'}`}></div>
+                            <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b pointer-events-none ${isNightMode ? 'from-slate-900/90 to-transparent' : 'from-white/90 to-transparent'}`}></div>
+                        </div>
+                        <StatsPanel player={player} currentCar={currentCar} />
+                        {activeSheet === 'MENU' && renderMenuSheet()}
+                        {activeSheet === 'SHIFT_SELECT' && renderShiftSelectSheet()}
+                        {activeSheet === 'SEARCHING' && renderSearchingOverlay()}
+                        {activeSheet === 'OFFER' && renderOfferSheet()}
+                        {activeSheet === 'DRIVING' && renderDrivingOverlay()}
+                        {activeSheet === 'RIDE_COMPLETE' && renderRideCompleteOverlay()}
+                        {activeSheet === 'GARAGE' && renderGarageSheet()}
+                        {activeSheet === 'RESULT' && renderResultSheet()}
+                        <div className="absolute top-24 left-4 right-4 z-50 pointer-events-none flex flex-col items-center gap-2">
+                            {logs.map(log => (
+                                <div key={log.id} className={`text-white text-xs px-4 py-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-4 duration-300 font-bold flex items-center gap-2 ${log.type === 'error' ? 'bg-red-500' : log.type === 'success' ? 'bg-green-500' : 'bg-slate-800/90 backdrop-blur'}`}>
+                                    {log.type === 'error' && <Icons.ShieldAlert size={14}/>}
+                                    {log.type === 'success' && <Icons.Zap size={14}/>}
+                                    {log.message}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "Taxi Tycoon AI",
+  "description": "A taxi driver simulator where you manage shifts, fuel, and car rentals while climbing the rating ladder. Features AI-generated passenger stories.",
+  "requestFramePermissions": []
+}
